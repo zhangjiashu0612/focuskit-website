@@ -1,0 +1,2446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusKit — Your Personal Cognitive Edge</title>
+  <meta name="description" content="FocusKit is your personal cognitive edge. A wearable EEG + AI coach for the moments that matter most — the ones you can't afford to guess.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="FocusKit — Your Personal Cognitive Edge">
+  <meta property="og:description" content="The moments that matter most are the ones you can't afford to guess.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.focuskit.org">
+  <meta property="og:image" content="https://www.focuskit.org/assets/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS SDK (for waitlist form) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       DESIGN TOKENS
+       ───────────────────────────────────────────────────────── */
+    :root {
+      /* Brand greens (from pitch deck spec) */
+      --forest:        #2D6A2E;
+      --forest-dark:   #1B4F1C;
+      --forest-mid:    #4CAF50;
+      --forest-light:  #E8F5E9;
+
+      /* Neutrals */
+      --charcoal:      #1A1A1A;
+      --gray-900:      #222222;
+      --gray-800:      #333333;
+      --gray-700:      #444444;
+      --gray-600:      #666666;
+      --gray-500:      #888888;
+      --gray-400:      #AAAAAA;
+      --gray-300:      #CCCCCC;
+      --gray-200:      #E5E5E5;
+      --gray-100:      #F2F2F0;
+      --cream:         #FAFAF7;
+      --white:         #FFFFFF;
+
+      /* Accent (use sparingly, only for "warning") */
+      --red:           #E53935;
+
+      /* Type scale */
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans:  'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      /* Easing */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--sans);
+      color: var(--gray-800);
+      background: var(--cream);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       UTILITIES
+       ───────────────────────────────────────────────────────── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .container-narrow {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .green        { color: var(--forest); }
+    .charcoal     { color: var(--charcoal); }
+    .muted        { color: var(--gray-500); }
+    .italic       { font-style: italic; }
+
+    /* Highlighter pen effect for emphasis */
+    .highlight {
+      background: linear-gradient(180deg, transparent 62%, var(--forest-light) 62%, var(--forest-light) 95%, transparent 95%);
+      padding: 0 0.15em;
+    }
+
+    .highlight-strong {
+      background: linear-gradient(180deg, transparent 62%, rgba(45,106,46,0.18) 62%, rgba(45,106,46,0.18) 95%, transparent 95%);
+      padding: 0 0.15em;
+    }
+
+    /* Section labels — pitch deck style */
+    .section-label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--forest);
+      margin-bottom: 1.25rem;
+    }
+
+    .section-label-dark {
+      color: var(--forest-mid);
+    }
+
+    /* H tags */
+    h1, h2, h3, h4 {
+      color: var(--charcoal);
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+      letter-spacing: -0.025em;
+      line-height: 1.05;
+    }
+
+    h2 {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+      line-height: 1.15;
+    }
+
+    h2.serif {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2.1rem, 5vw, 3.2rem);
+      line-height: 1.1;
+    }
+
+    h3 {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    /* Body type */
+    p {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: var(--gray-700);
+    }
+
+    .lead {
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: var(--gray-600);
+      max-width: 640px;
+    }
+
+    .lead-large {
+      font-size: 1.3rem;
+      line-height: 1.6;
+      color: var(--gray-800);
+      max-width: 720px;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       BUTTONS
+       ───────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.7rem;
+      border-radius: 100px;
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.25s var(--ease-out);
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--forest);
+      color: var(--white);
+      border-color: var(--forest);
+    }
+
+    .btn-primary:hover {
+      background: var(--forest-dark);
+      border-color: var(--forest-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(45, 106, 46, 0.25);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--forest);
+      border-color: var(--forest);
+    }
+
+    .btn-outline:hover {
+      background: var(--forest);
+      color: var(--white);
+    }
+
+    .btn-text {
+      background: transparent;
+      color: var(--gray-700);
+      padding: 0.85rem 0.5rem;
+      font-weight: 500;
+    }
+
+    .btn-text:hover {
+      color: var(--forest);
+    }
+
+    .btn-text .arrow {
+      display: inline-block;
+      transition: transform 0.25s var(--ease-out);
+    }
+
+    .btn-text:hover .arrow {
+      transform: translateY(2px);
+    }
+
+    .btn-large {
+      padding: 1rem 2.2rem;
+      font-size: 1rem;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       NAV
+       ───────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 1rem 1.5rem;
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    nav.scrolled {
+      border-bottom-color: rgba(0,0,0,0.05);
+      background: rgba(250, 250, 247, 0.95);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+      color: var(--forest);
+    }
+
+    .nav-logo img {
+      width: 30px;
+      height: 30px;
+    }
+
+    .nav-logo span {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--gray-700);
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--forest); }
+
+    .nav-links a.btn { padding: 0.55rem 1.3rem; font-size: 0.9rem; color: var(--white); }
+    .nav-links a.btn:hover { color: var(--white); }
+
+    /* ─────────────────────────────────────────────────────────
+       HERO
+       ───────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      padding: 8rem 1.5rem 4rem;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%; right: -15%;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(45,106,46,0.06) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 4rem;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 1rem;
+      background: var(--forest-light);
+      color: var(--forest);
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge .pulse {
+      width: 7px; height: 7px;
+      background: var(--forest);
+      border-radius: 50%;
+      animation: pulse 2s var(--ease-out) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(1.15); }
+    }
+
+    .hero h1 {
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 .green {
+      color: var(--forest);
+    }
+
+    .hero-tagline {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+      line-height: 1.45;
+      color: var(--gray-700);
+      margin-bottom: 1.5rem;
+      max-width: 480px;
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      line-height: 1.65;
+      color: var(--gray-600);
+      max-width: 480px;
+      margin-bottom: 2.25rem;
+    }
+
+    .hero-cta {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-note {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero-note::before {
+      content: '';
+      width: 16px; height: 1px;
+      background: var(--gray-300);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       ILLUSTRATION SLOTS — placeholder until Lovart images arrive
+       ───────────────────────────────────────────────────────── */
+    .illustration-slot {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: var(--white);
+      border: 2px dashed var(--gray-200);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .illustration-slot.aspect-43 {
+      aspect-ratio: 4 / 3;
+    }
+
+    .illustration-slot.aspect-43-tall {
+      aspect-ratio: 3 / 4;
+    }
+
+    .illustration-slot::before {
+      content: attr(data-asset);
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.78rem;
+      color: var(--gray-400);
+      background: var(--cream);
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      pointer-events: none;
+      text-align: center;
+      max-width: 80%;
+    }
+
+    .illustration-slot::after {
+      content: 'illustration · drop file here';
+      position: absolute;
+      top: calc(50% + 28px); left: 50%;
+      transform: translate(-50%, 0);
+      font-size: 0.7rem;
+      color: var(--gray-400);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .illustration-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: relative;
+      z-index: 1;
+    }
+
+    .illustration-slot img.failed {
+      display: none;
+    }
+
+    /* Phone screenshot frames (Lucas's existing assets) */
+    .phone-shot {
+      max-width: 320px;
+      width: 100%;
+      height: auto;
+      border-radius: 32px;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.04),
+        0 8px 24px rgba(0,0,0,0.06),
+        0 24px 48px rgba(0,0,0,0.08);
+      display: block;
+    }
+
+    .phone-shot.failed { display: none; }
+
+    .phone-shot-slot {
+      max-width: 320px;
+      width: 100%;
+      aspect-ratio: 9 / 19.5;
+      background: var(--white);
+      border: 2px dashed var(--gray-200);
+      border-radius: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .phone-shot-slot .filename {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      word-break: break-all;
+    }
+
+    .phone-shot-slot .label {
+      font-size: 0.7rem;
+      color: var(--gray-400);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       SECTION BASE
+       ───────────────────────────────────────────────────────── */
+    section {
+      padding: 7rem 1.5rem;
+      position: relative;
+    }
+
+    section.tight { padding: 5rem 1.5rem; }
+
+    .section-bg-cream { background: var(--cream); }
+    .section-bg-white { background: var(--white); }
+    .section-bg-light-green { background: var(--forest-light); }
+
+    /* Monday now opener — italic serif story prefix above main heading */
+    .monday-prefix {
+      display: block;
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      font-size: 0.55em;
+      color: var(--gray-500);
+      margin-bottom: 0.85rem;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       PROBLEM SECTION (Act 1 / Monday)
+       ───────────────────────────────────────────────────────── */
+    .problem-section {
+      background: var(--white);
+    }
+
+    .problem-intro {
+      max-width: 720px;
+      margin-bottom: 4rem;
+    }
+
+    .problem-intro h2 {
+      margin-bottom: 1.5rem;
+    }
+
+    .advice-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin: 3rem 0 4rem;
+    }
+
+    .advice-card {
+      padding: 1.5rem 1.25rem;
+      background: var(--cream);
+      border: 1px solid var(--gray-200);
+      border-radius: 16px;
+      position: relative;
+    }
+
+    .advice-card .advice-source {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      margin-bottom: 0.6rem;
+      font-weight: 600;
+    }
+
+    .advice-card .advice-text {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      color: var(--gray-700);
+      line-height: 1.4;
+    }
+
+    .advice-card::before {
+      content: '"';
+      position: absolute;
+      top: -12px;
+      left: 16px;
+      font-family: var(--serif);
+      font-size: 3rem;
+      color: var(--gray-300);
+      line-height: 1;
+    }
+
+    .punch-line {
+      text-align: center;
+      margin: 5rem 0 4rem;
+    }
+
+    .punch-line .small {
+      font-size: 1.05rem;
+      color: var(--gray-500);
+      margin-bottom: 0.75rem;
+    }
+
+    .punch-line .big {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      color: var(--charcoal);
+      line-height: 1.15;
+      font-weight: 400;
+    }
+
+    .punch-line .big .green {
+      color: var(--forest);
+      font-style: italic;
+    }
+
+    .doesnt-know-list {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75rem;
+    }
+
+    .doesnt-know-list p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: var(--gray-700);
+      padding-left: 2rem;
+      position: relative;
+    }
+
+    .doesnt-know-list p::before {
+      content: '×';
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-family: var(--serif);
+      color: var(--gray-400);
+      font-size: 1.4rem;
+      line-height: 1.4;
+    }
+
+    .doesnt-know-list strong {
+      color: var(--charcoal);
+      font-weight: 700;
+    }
+
+    .doesnt-know-list em {
+      color: var(--forest);
+      font-style: italic;
+      font-weight: 600;
+    }
+
+    .takeaway {
+      margin-top: 5rem;
+      text-align: center;
+      font-family: var(--serif);
+      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+      color: var(--charcoal);
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.4;
+      font-style: italic;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       PLAN SECTION (Act 2 / Monday afternoon)
+       ───────────────────────────────────────────────────────── */
+    .plan-section {
+      background: var(--cream);
+    }
+
+    .plan-intro {
+      max-width: 720px;
+      margin-bottom: 4rem;
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    .plan-days {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .plan-day {
+      padding: 1.5rem 1.75rem;
+      background: var(--white);
+      border-radius: 16px;
+      border-left: 3px solid var(--forest);
+      position: relative;
+      transition: transform 0.25s var(--ease-out);
+    }
+
+    .plan-day:hover {
+      transform: translateX(4px);
+    }
+
+    .plan-day .day-when {
+      font-family: var(--sans);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--forest);
+      margin-bottom: 0.5rem;
+    }
+
+    .plan-day .day-what {
+      font-family: var(--sans);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--charcoal);
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+    }
+
+    .plan-day .day-why {
+      font-size: 0.92rem;
+      color: var(--gray-600);
+      line-height: 1.55;
+    }
+
+    .plan-screenshot {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       WEEKLY REPORT SECTION (Act 3 / How it knows)
+       ───────────────────────────────────────────────────────── */
+    .report-section {
+      background: var(--white);
+    }
+
+    .report-intro {
+      max-width: 760px;
+      margin-bottom: 4.5rem;
+    }
+
+    .report-stack {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 5rem;
+    }
+
+    .report-stack-screens {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      justify-items: center;
+    }
+
+    .report-stack-text h3 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: var(--charcoal);
+    }
+
+    .report-stack-text p {
+      margin-bottom: 1rem;
+    }
+
+    .data-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .data-source-chip {
+      padding: 0.4rem 0.85rem;
+      background: var(--forest-light);
+      color: var(--forest);
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 100px;
+      letter-spacing: 0.02em;
+    }
+
+    .findings-divider {
+      text-align: center;
+      margin: 5rem 0 3rem;
+    }
+
+    .findings-divider h3 {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      color: var(--charcoal);
+      max-width: 720px;
+      margin: 0 auto 0.75rem;
+      line-height: 1.3;
+    }
+
+    .findings-divider .sub {
+      color: var(--gray-500);
+      font-size: 0.95rem;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .findings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .finding-card {
+      padding: 2rem;
+      background: var(--cream);
+      border: 1px solid var(--gray-200);
+      border-radius: 20px;
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .finding-card:hover {
+      border-color: var(--forest);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(45,106,46,0.08);
+    }
+
+    .finding-card.featured {
+      background: linear-gradient(180deg, var(--forest-light) 0%, var(--cream) 100%);
+      border-color: var(--forest);
+    }
+
+    .finding-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      background: var(--forest-light);
+      color: var(--forest);
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 100px;
+      margin-bottom: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .finding-tag .conf {
+      font-weight: 500;
+      color: var(--gray-600);
+    }
+
+    .finding-card.featured .finding-tag .conf {
+      color: var(--forest-dark);
+    }
+
+    .finding-headline {
+      font-family: var(--sans);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      color: var(--charcoal);
+      margin-bottom: 0.85rem;
+      font-weight: 500;
+    }
+
+    .finding-headline strong {
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    .finding-headline em {
+      font-style: normal;
+      background: rgba(45,106,46,0.12);
+      padding: 0 0.2em;
+      color: var(--charcoal);
+      font-weight: 600;
+    }
+
+    .finding-detail {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--gray-600);
+      font-style: italic;
+    }
+
+    .findings-screenshot-row {
+      display: flex;
+      justify-content: center;
+      margin: 3rem 0;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       BOOST SECTION (Act 4 / Friday 1:55 PM, hardware)
+       ───────────────────────────────────────────────────────── */
+    .boost-section {
+      background: var(--charcoal);
+      color: var(--white);
+    }
+
+    .boost-section h2 {
+      color: var(--white);
+    }
+
+    .boost-section .section-label { color: var(--forest-mid); }
+
+    .boost-intro {
+      max-width: 760px;
+      margin-bottom: 4rem;
+    }
+
+    .boost-section .lead-large {
+      color: rgba(255,255,255,0.75);
+    }
+
+    .boost-section h2 .muted {
+      display: block;
+      color: rgba(255,255,255,0.55);
+      font-weight: 400;
+      font-size: 0.7em;
+      margin-top: 0.5rem;
+      font-style: italic;
+      font-family: var(--serif);
+    }
+
+    .boost-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 6rem;
+    }
+
+    .boost-text p {
+      color: rgba(255,255,255,0.7);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
+
+    .boost-text strong {
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    .boost-text .pulled {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      color: var(--white);
+      font-style: italic;
+      line-height: 1.4;
+      padding-left: 1.25rem;
+      border-left: 2px solid var(--forest-mid);
+      margin: 1.5rem 0;
+    }
+
+    .boost-screenshot {
+      display: flex;
+      justify-content: center;
+    }
+
+    .boost-screenshot .phone-shot,
+    .boost-screenshot .phone-shot-slot {
+      box-shadow:
+        0 1px 2px rgba(255,255,255,0.05),
+        0 12px 36px rgba(0,0,0,0.4),
+        0 36px 72px rgba(0,0,0,0.5);
+    }
+
+    .boost-screenshot .phone-shot-slot {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .boost-screenshot .phone-shot-slot .filename,
+    .boost-screenshot .phone-shot-slot .label {
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* ─── HARDWARE INTERACTIVE ─── */
+    .hardware-block {
+      margin-top: 6rem;
+      padding-top: 5rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hardware-block h3 {
+      color: var(--white);
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+      margin-bottom: 0.75rem;
+    }
+
+    .hardware-block .hw-sub {
+      color: rgba(255,255,255,0.55);
+      font-size: 0.95rem;
+      margin-bottom: 4rem;
+    }
+
+    .hardware-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .device-image-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.03);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Placeholder C-shape device SVG (will be visually behind real img if loaded) */
+    .device-svg {
+      width: 65%;
+      height: 65%;
+      opacity: 0.85;
+    }
+
+    .device-svg .device-body {
+      stroke: var(--forest-mid);
+      stroke-width: 14;
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .device-svg .device-housing {
+      fill: var(--forest);
+    }
+
+    .device-svg .device-led {
+      fill: var(--forest-mid);
+    }
+
+    .device-image-wrapper .device-real-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 1;
+    }
+
+    .device-image-wrapper .device-real-image.failed {
+      display: none;
+    }
+
+    /* Hotspots */
+    .hotspot {
+      position: absolute;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 0;
+      z-index: 5;
+      transition: transform 0.2s var(--ease-out);
+    }
+
+    .hotspot:hover { transform: scale(1.15); }
+
+    .hotspot .dot {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--forest-mid);
+      box-shadow: 0 0 0 4px rgba(76,175,80,0.25);
+      animation: hotspot-pulse 2.4s var(--ease-out) infinite;
+    }
+
+    @keyframes hotspot-pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(76,175,80,0.25); }
+      50%      { box-shadow: 0 0 0 12px rgba(76,175,80,0.0); }
+    }
+
+    .hotspot .num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 0.75rem;
+      font-weight: 700;
+      z-index: 1;
+    }
+
+    /* Callouts shown on tap/hover */
+    .hotspot-callout {
+      position: absolute;
+      width: 240px;
+      padding: 1rem 1.1rem;
+      background: var(--white);
+      color: var(--charcoal);
+      border-radius: 14px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: all 0.22s var(--ease-out);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hotspot-callout.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .hotspot-callout h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 0.35rem;
+    }
+
+    .hotspot-callout p {
+      color: var(--gray-700);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .hotspot-positions-1 { top: 22%; left: 35%; }
+    .hotspot-positions-2 { top: 45%; left: 65%; }
+    .hotspot-positions-3 { top: 68%; left: 38%; }
+    .hotspot-positions-4 { top: 78%; left: 60%; }
+
+    .hotspot-positions-1 .hotspot-callout { top: 0; left: calc(100% + 16px); }
+    .hotspot-positions-2 .hotspot-callout { top: 0; left: calc(100% + 16px); }
+    .hotspot-positions-3 .hotspot-callout { bottom: 0; right: calc(100% + 16px); }
+    .hotspot-positions-4 .hotspot-callout { bottom: 0; right: calc(100% + 16px); }
+
+    .hardware-specs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .hardware-spec-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .hardware-spec-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--forest-mid);
+      color: var(--charcoal);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .hardware-spec-text {
+      flex: 1;
+    }
+
+    .hardware-spec-text h4 {
+      color: var(--white);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .hardware-spec-text p {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       LOOP DIAGRAM SECTION
+       ───────────────────────────────────────────────────────── */
+    .loop-section {
+      background: var(--cream);
+      text-align: center;
+    }
+
+    .loop-section h2 {
+      margin-bottom: 1rem;
+    }
+
+    .loop-section .lead {
+      margin: 0 auto 4rem;
+      text-align: center;
+    }
+
+    .loop-diagram {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .loop-diagram svg {
+      width: 100%;
+      height: auto;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       AUDIENCE SECTION (Who it's for)
+       ───────────────────────────────────────────────────────── */
+    .audience-section {
+      background: var(--white);
+    }
+
+    .audience-intro {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 4rem;
+    }
+
+    .audience-intro h2 { margin-bottom: 1rem; }
+
+    .audience-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+    }
+
+    .audience-card {
+      background: var(--cream);
+      border: 1px solid var(--gray-200);
+      border-radius: 24px;
+      padding: 2.5rem;
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .audience-card:hover {
+      border-color: var(--forest);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(45,106,46,0.08);
+    }
+
+    .audience-card .illustration-slot {
+      max-width: 220px;
+      margin: 0 auto 1.5rem;
+      aspect-ratio: 1 / 1;
+      background: var(--white);
+    }
+
+    .audience-card h3 {
+      text-align: center;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .audience-card .role-line {
+      text-align: center;
+      color: var(--gray-500);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .audience-card .need-pill {
+      display: block;
+      background: var(--forest-light);
+      color: var(--forest);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.65rem 1rem;
+      border-radius: 100px;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .audience-card .moments {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .audience-card .moments li {
+      font-size: 0.95rem;
+      color: var(--gray-700);
+      padding-left: 1.25rem;
+      position: relative;
+    }
+
+    .audience-card .moments li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       BUILT BY (Solo founder)
+       ───────────────────────────────────────────────────────── */
+    .founder-section {
+      background: var(--white);
+      padding: 6rem 1.5rem;
+    }
+
+    .founder-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 3.5rem;
+      align-items: center;
+    }
+
+    .founder-image {
+      width: 100%;
+    }
+
+    .founder-image .illustration-slot {
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border-width: 1.5px;
+    }
+
+    .founder-image .illustration-slot img {
+      border-radius: 50%;
+    }
+
+    .founder-text h2 {
+      margin-bottom: 0.5rem;
+      font-size: clamp(2.2rem, 4.5vw, 3rem);
+    }
+
+    .founder-role {
+      font-size: 0.95rem;
+      color: var(--gray-500);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.01em;
+    }
+
+    .founder-bio {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--gray-700);
+      margin-bottom: 1.25rem;
+      max-width: 560px;
+    }
+
+    .founder-bio-callout {
+      padding: 1.25rem 1.4rem;
+      background: var(--forest-light);
+      border-left: 3px solid var(--forest);
+      border-radius: 4px 12px 12px 4px;
+      color: var(--gray-800);
+      margin-top: 0.5rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .founder-bio-callout strong {
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    .founder-links {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .founder-links a {
+      color: var(--gray-600);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+
+    .founder-links a:hover {
+      color: var(--forest);
+    }
+
+    .founder-links a.founder-cta {
+      background: var(--forest);
+      color: var(--white);
+      padding: 0.7rem 1.4rem;
+      border-radius: 100px;
+      font-weight: 600;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .founder-links a.founder-cta:hover {
+      background: var(--forest-dark);
+      color: var(--white);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(45, 106, 46, 0.25);
+    }
+
+    @media (max-width: 700px) {
+      .founder-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
+      }
+      .founder-image {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+      .founder-bio {
+        text-align: left;
+      }
+      .founder-links {
+        justify-content: center;
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       CTA / WAITLIST SECTION
+       ───────────────────────────────────────────────────────── */
+    .cta-section {
+      background: var(--forest);
+      color: var(--white);
+      text-align: center;
+      padding: 7rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: -30%; left: -10%;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-section::after {
+      content: '';
+      position: absolute;
+      bottom: -30%; right: -10%;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .cta-section .container { position: relative; z-index: 1; }
+
+    .countdown {
+      margin-bottom: 3rem;
+    }
+
+    .countdown-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 1.25rem;
+      font-weight: 700;
+    }
+
+    .countdown-display {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: stretch;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cd-block {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      min-width: 88px;
+    }
+
+    .cd-num {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 4vw, 2.6rem);
+      color: var(--white);
+      line-height: 1;
+      font-feature-settings: 'tnum';
+    }
+
+    .cd-unit {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+
+    .cta-section h2 {
+      color: var(--white);
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin-bottom: 1rem;
+    }
+
+    .cta-section p {
+      color: rgba(255,255,255,0.75);
+      font-size: 1.05rem;
+      max-width: 480px;
+      margin: 0 auto 2.5rem;
+    }
+
+    .waitlist-form {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 480px;
+      margin: 0 auto;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .waitlist-form input {
+      flex: 1;
+      min-width: 240px;
+      padding: 1rem 1.4rem;
+      border-radius: 100px;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+      font-size: 0.95rem;
+      font-family: var(--sans);
+      outline: none;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .waitlist-form input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .waitlist-form input:focus {
+      border-color: rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.15);
+    }
+
+    .waitlist-form button {
+      background: var(--white);
+      color: var(--forest);
+      border: 0;
+      padding: 1rem 2rem;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: var(--sans);
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .waitlist-form button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    .cta-note {
+      margin-top: 1.25rem;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.5) !important;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       FOOTER
+       ───────────────────────────────────────────────────────── */
+    footer {
+      background: var(--charcoal);
+      color: rgba(255,255,255,0.5);
+      padding: 3rem 1.5rem;
+      font-size: 0.85rem;
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .footer-logo img {
+      width: 24px; height: 24px;
+      opacity: 0.7;
+    }
+
+    .footer-logo span {
+      font-family: var(--serif);
+      color: rgba(255,255,255,0.65);
+      font-size: 1rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: rgba(255,255,255,0.85); }
+
+    .footer-meta {
+      color: rgba(255,255,255,0.35);
+      font-size: 0.78rem;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       ANIMATIONS
+       ───────────────────────────────────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+    }
+
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fade-up-d1 { transition-delay: 0.1s; }
+    .fade-up-d2 { transition-delay: 0.2s; }
+    .fade-up-d3 { transition-delay: 0.3s; }
+
+    /* ─────────────────────────────────────────────────────────
+       RESPONSIVE
+       ───────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .hero-grid .illustration-slot { max-width: 420px; margin: 0 auto; }
+
+      .plan-grid,
+      .report-stack,
+      .boost-grid,
+      .hardware-stage,
+      .audience-grid {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .findings-grid { grid-template-columns: 1fr; }
+      .advice-row { grid-template-columns: 1fr; }
+      .report-stack-screens { grid-template-columns: 1fr 1fr; max-width: 480px; margin: 0 auto; }
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 0.75rem 1rem; }
+      .nav-links li:not(:last-child) { display: none; }
+
+      section { padding: 5rem 1.25rem; }
+      .hero { padding: 7rem 1.25rem 4rem; min-height: auto; }
+
+      h1 { font-size: clamp(2.2rem, 9vw, 3.4rem); }
+
+      .hardware-stage { gap: 4rem; }
+      .hotspot-callout { width: 200px; }
+      .hotspot-positions-1 .hotspot-callout,
+      .hotspot-positions-2 .hotspot-callout { left: auto; right: calc(100% + 12px); }
+      .hotspot-positions-3 .hotspot-callout,
+      .hotspot-positions-4 .hotspot-callout { right: auto; left: calc(100% + 12px); }
+
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       NAV
+       ═══════════════════════════════════════════════════════ -->
+  <nav id="topNav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <img src="assets/logo.png" alt="">
+        <span>FocusKit</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#story">The story</a></li>
+        <li><a href="#device">The device</a></li>
+        <li><a href="#for">Who it's for</a></li>
+        <li><a href="#waitlist" class="btn btn-primary">Join waitlist</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════
+       HERO
+       ═══════════════════════════════════════════════════════ -->
+  <section class="hero">
+    <div class="hero-grid">
+
+      <div class="hero-text fade-up">
+        <span class="hero-badge"><span class="pulse"></span>Launching May 1, 2026</span>
+        <h1>FocusKit,<br>your personal <span class="green">cognitive edge.</span></h1>
+        <p class="hero-tagline">The moments that matter most are the ones you can't afford to guess.</p>
+        <p class="hero-sub">FocusKit learns how your brain actually works — from your sleep, your schedule, your real data. So when the stakes are real, you show up sharp. <strong>Not lucky.</strong></p>
+        <div class="hero-cta">
+          <a href="#waitlist" class="btn btn-primary btn-large">Join the waitlist</a>
+          <a href="#story" class="btn btn-text">See how it works <span class="arrow">↓</span></a>
+        </div>
+        <div class="hero-note">No spam. Unsubscribe anytime.</div>
+      </div>
+
+      <div class="hero-image fade-up fade-up-d1">
+        <div class="illustration-slot" data-asset="assets/illustrations/hero_friday_2pm.png">
+          <img src="assets/illustrations/hero_friday_2pm.png" alt="A young man at his desk looking at a calendar event for Friday 2 PM Interview" onerror="this.classList.add('failed')">
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ACT 1 — PROBLEM (It's Monday now)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="problem-section" id="story">
+    <div class="container">
+
+      <div class="problem-intro fade-up">
+        <span class="section-label">Act 1 · Generic tools right now</span>
+        <h2 class="serif"><span class="monday-prefix">It's Monday now.</span>On Friday at 2 PM, you have the most important interview of your year.</h2>
+        <p class="lead-large" style="margin-top:1.25rem">Naturally, you Google "how to perform at my mental peak." Then you ask ChatGPT. Then a friend who took the interview last year. They all give you the same answers — and none of them actually <em>know</em> you.</p>
+      </div>
+
+      <div class="advice-row fade-up">
+        <div class="advice-card">
+          <div class="advice-source">Google</div>
+          <p class="advice-text">Sleep 8 hours. Hydrate. Avoid caffeine after 2 PM.</p>
+        </div>
+        <div class="advice-card">
+          <div class="advice-source">ChatGPT</div>
+          <p class="advice-text">Eat clean. Exercise. Practice mindfulness.</p>
+        </div>
+        <div class="advice-card">
+          <div class="advice-source">A friend</div>
+          <p class="advice-text">Honestly? Just relax. You got this.</p>
+        </div>
+      </div>
+
+      <div class="punch-line fade-up">
+        <div class="small">Generic advice has a generic problem.</div>
+        <div class="big">It doesn't know <span class="green">you.</span></div>
+      </div>
+
+      <div class="doesnt-know-list fade-up">
+        <p>It doesn't know that when <strong>you</strong> sleep under 7.5 hours <em>and</em> have back-to-back morning meetings, your afternoon focus crashes <strong>52%</strong> — nearly double the drop from either factor alone.</p>
+        <p>It doesn't know that heavy carb lunches wreck <strong>you</strong> — but only on days you skip the morning workout.</p>
+        <p>It doesn't know that, weirdly, 5 minutes of Instagram resets <strong>you</strong> better than coffee. <em>14 times out of 17.</em></p>
+      </div>
+
+      <p class="takeaway fade-up">For knowledge workers, focus is a black box. And when it matters most — an interview, a board pitch, a demo day — we're still guessing.</p>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ACT 2 — THE PLAN (Monday afternoon)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="plan-section">
+    <div class="container">
+
+      <div class="plan-intro fade-up">
+        <span class="section-label">Act 2 · Monday afternoon</span>
+        <h2 class="serif">You open FocusKit.<br>It already knows Friday 2 PM matters.</h2>
+        <p class="lead-large" style="margin-top:1.25rem">It's on your calendar — flagged "interview." So it hands you a 4-day plan, tied to your actual schedule and your last three months of data.</p>
+      </div>
+
+      <div class="plan-grid fade-up">
+        <div class="plan-days">
+          <div class="plan-day">
+            <div class="day-when">Wed + Thu</div>
+            <div class="day-what">Lights out by 11:30. At least 7.5 hours of sleep.</div>
+            <div class="day-why">Both your afternoon blocks that week are heavy. The compound cost hits hardest 48 hours out.</div>
+          </div>
+          <div class="plan-day">
+            <div class="day-when">Friday lunch</div>
+            <div class="day-what">Skip the heavy carb lunch.</div>
+            <div class="day-why">Your post-lunch glucose dip costs you ~20 minutes of peak focus, landing right at 2 PM.</div>
+          </div>
+          <div class="plan-day">
+            <div class="day-when">Friday 1:45 PM</div>
+            <div class="day-what">15-minute walk before you sit down.</div>
+            <div class="day-why">On high-stakes afternoons, your pre-event walks correlate with a 31% better focus score in the hour that follows.</div>
+          </div>
+          <div class="plan-day">
+            <div class="day-when">Friday 2:00 PM</div>
+            <div class="day-what">Show up. You've prepared.</div>
+            <div class="day-why">Not generic preparation. Preparation built around this exact moment.</div>
+          </div>
+        </div>
+
+        <div class="plan-screenshot">
+          <img src="assets/app/app_next_week_plan.png" alt="FocusKit weekly plan screen showing 4-day prescription"
+               class="phone-shot"
+               onerror="this.classList.add('failed'); this.nextElementSibling.style.display='flex';">
+          <div class="phone-shot-slot" style="display:none">
+            <span class="filename">assets/app/<br>app_next_week_plan.png</span>
+            <span class="label">phone screenshot</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="takeaway fade-up">You stop preparing in general. <span class="highlight-strong">You start preparing for Friday.</span></p>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ACT 3 — HOW IT KNOWS (Weekly Report)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="report-section" id="weekly">
+    <div class="container">
+
+      <div class="report-intro fade-up">
+        <span class="section-label">Act 3 · How does it know any of that?</span>
+        <h2 class="serif">Every week, your data becomes your manual.</h2>
+        <p class="lead-large" style="margin-top:1.25rem">FocusKit fuses your real-time EEG focus signal with everything else: sleep, calendar, meals, movement, screen time. Then it surfaces <em>interaction effects</em> that generic AI will never catch — because no generic AI has your data.</p>
+      </div>
+
+      <div class="report-stack fade-up">
+        <div class="report-stack-text">
+          <h3>Multi-source data fusion</h3>
+          <p>Apple Watch sleep stages, HRV, heart rate, workouts. Apple Calendar events and meeting density. Manual logs of caffeine and meals. iOS Screen Time. And your live EEG focus score from FocusKit itself.</p>
+          <p>All in one timeline. All correlated. All for you.</p>
+          <div class="data-sources">
+            <span class="data-source-chip">Apple Watch</span>
+            <span class="data-source-chip">Apple Calendar</span>
+            <span class="data-source-chip">Apple Fitness</span>
+            <span class="data-source-chip">Screen Time</span>
+            <span class="data-source-chip">Manual logs</span>
+            <span class="data-source-chip">EEG signal</span>
+          </div>
+        </div>
+
+        <div class="report-stack-screens">
+          <img src="assets/app/app_weekly_report_top.png" alt="Weekly report summary metrics"
+               class="phone-shot"
+               onerror="this.classList.add('failed'); this.nextElementSibling.style.display='flex';">
+          <div class="phone-shot-slot" style="display:none">
+            <span class="filename">assets/app/<br>app_weekly_report_top.png</span>
+            <span class="label">phone screenshot</span>
+          </div>
+
+          <img src="assets/app/app_timeline.png" alt="Daily timeline of multi-source data"
+               class="phone-shot"
+               onerror="this.classList.add('failed'); this.nextElementSibling.style.display='flex';">
+          <div class="phone-shot-slot" style="display:none">
+            <span class="filename">assets/app/<br>app_timeline.png</span>
+            <span class="label">phone screenshot</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="findings-divider fade-up">
+        <h3>Three findings from a real Week 16:</h3>
+        <p class="sub">Subtle, personal causations no generic model can surface — because it doesn't have your data.</p>
+      </div>
+
+      <div class="findings-grid fade-up">
+        <div class="finding-card">
+          <div class="finding-tag">Sleep <span class="conf">· Confidence 85%</span></div>
+          <p class="finding-headline">On days you slept under 7.5h <em>AND</em> had back-to-back meetings before noon, your afternoon focus crashed <strong>52%</strong> — nearly double the drop from either factor alone.</p>
+          <p class="finding-detail">Tuesday was exactly this combo: 6.8h sleep + 3 morning meetings. Individually survivable. Together, a wipeout.</p>
+        </div>
+
+        <div class="finding-card">
+          <div class="finding-tag">Heavy lunch <span class="conf">· Confidence 78%</span></div>
+          <p class="finding-headline">High-carb lunches tank your 2–4 PM focus — <em>but only on days you skipped morning exercise.</em> When you worked out, carbs barely affected you.</p>
+          <p class="finding-detail">Thursday: no workout + pasta lunch → your worst afternoon score this month. Friday: same pasta, but you ran at 7 AM → completely fine.</p>
+        </div>
+
+        <div class="finding-card featured">
+          <div class="finding-tag">Reset patterns <span class="conf">· Confidence 72%</span></div>
+          <p class="finding-headline">5 minutes of Instagram outperforms coffee — for you. <strong>14 times out of 17.</strong></p>
+          <p class="finding-detail">We don't know why. We just know it does.</p>
+        </div>
+      </div>
+
+      <div class="findings-screenshot-row fade-up">
+        <img src="assets/app/app_weekly_findings.png" alt="Weekly findings card view in app"
+             class="phone-shot"
+             onerror="this.classList.add('failed'); this.nextElementSibling.style.display='flex';">
+        <div class="phone-shot-slot" style="display:none">
+          <span class="filename">assets/app/<br>app_weekly_findings.png</span>
+          <span class="label">phone screenshot</span>
+        </div>
+      </div>
+
+      <p class="takeaway fade-up">Every week, your <span class="highlight-strong">cognitive operating manual</span> gets thicker. Next week's plan gets sharper.</p>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ACT 4 — REAL-TIME BOOST (Friday 1:55 PM, hardware enters)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="boost-section" id="device">
+    <div class="container">
+
+      <div class="boost-intro fade-up">
+        <span class="section-label section-label-dark">Act 4 · Friday, 1:55 PM</span>
+        <h2 class="serif">You followed the plan. You should be sharp.<span class="muted">But focus isn't a guarantee — it's a probability.</span></h2>
+        <p class="lead-large" style="margin-top:1.25rem; color:rgba(255,255,255,0.75)">So FocusKit rides along in real time.</p>
+      </div>
+
+      <div class="boost-grid fade-up">
+        <div class="boost-text">
+          <p>The behind-the-ear device reads your live EEG focus signal. The moment you drift — attention slips, hand reaches for the phone — a gentle haptic pulls you back.</p>
+          <p class="pulled">No notification. No guilt. Just a tap that says: you're off-track, come back.</p>
+          <p>End the session. You get a focus score. It flows straight back into your timeline — making next Friday's plan even more accurate.</p>
+        </div>
+
+        <div class="boost-screenshot">
+          <img src="assets/app/app_home_with_tip.png" alt="App home screen showing real-time focus coaching tip"
+               class="phone-shot"
+               onerror="this.classList.add('failed'); this.nextElementSibling.style.display='flex';">
+          <div class="phone-shot-slot" style="display:none">
+            <span class="filename">assets/app/<br>app_home_with_tip.png</span>
+            <span class="label">phone screenshot</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HARDWARE INTERACTIVE ── -->
+      <div class="hardware-block">
+
+        <div class="fade-up">
+          <h3>The device itself.</h3>
+          <p class="hw-sub">A C-shaped clip that hugs the back of your ear. 18 grams. Dry electrodes. Tap the dots to explore.</p>
+        </div>
+
+        <div class="hardware-stage fade-up">
+
+          <div class="device-image-wrapper">
+            <!-- Real device image (hidden until file is dropped in) -->
+            <img src="assets/illustrations/device_closeup.png" alt="FocusKit C-shaped behind-the-ear device"
+                 class="device-real-image"
+                 onerror="this.classList.add('failed')">
+
+            <!-- Placeholder C-shape SVG visible while no real image -->
+            <svg class="device-svg" viewBox="0 0 200 240" fill="none">
+              <!-- C-curve representing ear hook -->
+              <path class="device-body" d="M 130,30 Q 80,30 60,80 Q 50,130 70,170 Q 90,200 130,210" />
+              <!-- electronics housing at bottom -->
+              <ellipse class="device-housing" cx="135" cy="195" rx="18" ry="22" transform="rotate(15 135 195)" />
+              <!-- LED dot -->
+              <circle class="device-led" cx="135" cy="190" r="3" />
+            </svg>
+
+            <!-- HOTSPOTS -->
+            <div class="hotspot hotspot-positions-1" data-hotspot="1">
+              <span class="dot"></span>
+              <span class="num">1</span>
+              <div class="hotspot-callout">
+                <h4>Dry EEG electrodes</h4>
+                <p>No gel, no setup. Reads brain signal directly through skin contact at the mastoid.</p>
+              </div>
+            </div>
+
+            <div class="hotspot hotspot-positions-2" data-hotspot="2">
+              <span class="dot"></span>
+              <span class="num">2</span>
+              <div class="hotspot-callout">
+                <h4>18g, behind-the-ear</h4>
+                <p>Lighter than most earbuds. Your ear canal stays free for headphones.</p>
+              </div>
+            </div>
+
+            <div class="hotspot hotspot-positions-3" data-hotspot="3">
+              <span class="dot"></span>
+              <span class="num">3</span>
+              <div class="hotspot-callout">
+                <h4>On-device processing</h4>
+                <p>ADS1299 + nRF5340. Streams your real-time focus state to your phone over BLE 5.3.</p>
+              </div>
+            </div>
+
+            <div class="hotspot hotspot-positions-4" data-hotspot="4">
+              <span class="dot"></span>
+              <span class="num">4</span>
+              <div class="hotspot-callout">
+                <h4>Gentle haptic feedback</h4>
+                <p>When you drift, a soft pulse pulls you back. No notification. No guilt.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hardware-specs-list">
+            <div class="hardware-spec-row">
+              <div class="hardware-spec-num">1</div>
+              <div class="hardware-spec-text">
+                <h4>Dry electrodes</h4>
+                <p>No gel, no skin prep. Just wear it.</p>
+              </div>
+            </div>
+            <div class="hardware-spec-row">
+              <div class="hardware-spec-num">2</div>
+              <div class="hardware-spec-text">
+                <h4>18 grams · ear canal free</h4>
+                <p>Works with any headphones. Comfortable for 8-hour wear.</p>
+              </div>
+            </div>
+            <div class="hardware-spec-row">
+              <div class="hardware-spec-num">3</div>
+              <div class="hardware-spec-text">
+                <h4>5+1 EEG channels</h4>
+                <p>Mastoid + temporal placement. 250Hz, 24-bit. Medical-grade signal at consumer price.</p>
+              </div>
+            </div>
+            <div class="hardware-spec-row">
+              <div class="hardware-spec-num">4</div>
+              <div class="hardware-spec-text">
+                <h4>Real-time haptic loop</h4>
+                <p>Detects drift in seconds. Pulls you back without breaking flow.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       THE LOOP
+       ═══════════════════════════════════════════════════════ -->
+  <section class="loop-section">
+    <div class="container">
+
+      <div class="fade-up">
+        <span class="section-label">The full loop</span>
+        <h2 class="serif">Every high-stakes moment makes the next one sharper.</h2>
+        <p class="lead" style="margin: 1.25rem auto 4rem">Long-term data → personalized prescription → real-time protection → richer data. The longer you use it, the more it understands you.</p>
+      </div>
+
+      <div class="loop-diagram fade-up">
+        <svg viewBox="0 0 700 460" xmlns="http://www.w3.org/2000/svg">
+          <!-- Hand-drawn-feel circular flow with 4 nodes -->
+          <defs>
+            <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2D6A2E"/>
+            </marker>
+          </defs>
+
+          <!-- Connecting curves between nodes -->
+          <path d="M 230,90 Q 380,40 520,90"  stroke="#2D6A2E" stroke-width="2" fill="none" stroke-dasharray="4 6" marker-end="url(#arrowGreen)" />
+          <path d="M 580,160 Q 640,260 580,360" stroke="#2D6A2E" stroke-width="2" fill="none" stroke-dasharray="4 6" marker-end="url(#arrowGreen)" />
+          <path d="M 520,400 Q 380,440 230,400" stroke="#2D6A2E" stroke-width="2" fill="none" stroke-dasharray="4 6" marker-end="url(#arrowGreen)" />
+          <path d="M 170,360 Q 110,260 170,160" stroke="#2D6A2E" stroke-width="2" fill="none" stroke-dasharray="4 6" marker-end="url(#arrowGreen)" />
+
+          <!-- Node 1: Long-term data (top-left) -->
+          <circle cx="170" cy="120" r="62" fill="#E8F5E9" stroke="#2D6A2E" stroke-width="2" />
+          <text x="170" y="113" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">Long-term</text>
+          <text x="170" y="131" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">data</text>
+
+          <!-- Node 2: Personalized plan (top-right) -->
+          <circle cx="580" cy="120" r="62" fill="#E8F5E9" stroke="#2D6A2E" stroke-width="2" />
+          <text x="580" y="113" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">Personalized</text>
+          <text x="580" y="131" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">plan</text>
+
+          <!-- Node 3: Real-time protection (bottom-right) -->
+          <circle cx="580" cy="380" r="62" fill="#E8F5E9" stroke="#2D6A2E" stroke-width="2" />
+          <text x="580" y="373" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">Real-time</text>
+          <text x="580" y="391" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">protection</text>
+
+          <!-- Node 4: Richer data (bottom-left) -->
+          <circle cx="170" cy="380" r="62" fill="#E8F5E9" stroke="#2D6A2E" stroke-width="2" />
+          <text x="170" y="373" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">Richer</text>
+          <text x="170" y="391" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="700" fill="#2D6A2E">data</text>
+
+          <!-- Center label -->
+          <text x="375" y="245" text-anchor="middle" font-family="DM Serif Display, serif" font-size="22" font-style="italic" fill="#1A1A1A">FocusKit</text>
+          <text x="375" y="270" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="12" fill="#666666" letter-spacing="2">— THE LOOP —</text>
+        </svg>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WHO IT'S FOR
+       ═══════════════════════════════════════════════════════ -->
+  <section class="audience-section" id="for">
+    <div class="container">
+
+      <div class="audience-intro fade-up">
+        <span class="section-label">Who it's for</span>
+        <h2 class="serif">When your focus is the asset.</h2>
+        <p class="lead" style="margin: 1.25rem auto 0">FocusKit is built for the people whose performance directly translates into outcomes — and who can't afford to leave it to chance.</p>
+      </div>
+
+      <div class="audience-grid fade-up">
+
+        <div class="audience-card">
+          <div class="illustration-slot" data-asset="segment_knowledge_worker.png">
+            <img src="assets/illustrations/segment_knowledge_worker.png" alt="Senior knowledge worker at desk" onerror="this.classList.add('failed')">
+          </div>
+          <h3>Senior knowledge workers</h3>
+          <div class="role-line">Professors · Senior engineers · Physicians · Founders</div>
+          <span class="need-pill">Understand <em>why</em> performance varies.</span>
+          <ul class="moments">
+            <li>Grant deadlines &amp; tenure review writing</li>
+            <li>Architectural reviews &amp; production incidents</li>
+            <li>Diagnostic shifts &amp; surgical mornings</li>
+            <li>Board pitches &amp; demo days</li>
+          </ul>
+        </div>
+
+        <div class="audience-card">
+          <div class="illustration-slot" data-asset="segment_college_student.png">
+            <img src="assets/illustrations/segment_college_student.png" alt="College student studying" onerror="this.classList.add('failed')">
+          </div>
+          <h3>High-performance students</h3>
+          <div class="role-line">STEM · Pre-med · Graduate</div>
+          <span class="need-pill">Stay focused when stakes are highest.</span>
+          <ul class="moments">
+            <li>Final exams</li>
+            <li>Internship interviews</li>
+            <li>Research deadlines</li>
+            <li>Application essays</li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       BUILT BY (Solo founder)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="founder-section">
+    <div class="container-narrow">
+      <div class="founder-grid fade-up">
+
+        <div class="founder-image">
+          <div class="illustration-slot" data-asset="founder_lucas.png">
+            <img src="assets/illustrations/founder_lucas.png" alt="Lucas Zhang, founder of FocusKit"
+                 onerror="this.classList.add('failed')">
+          </div>
+        </div>
+
+        <div class="founder-text">
+          <span class="section-label">Built by</span>
+          <h2 class="serif">Lucas.</h2>
+          <p class="founder-bio">I started FocusKit because I needed it myself — I wanted a clearer way to see my own focus, and nothing on the market quite got there. So I've been building what I can on my own: the hardware, the iOS app, the AI layer, the research. It's early. A lot of it is still rough, and I'm figuring things out as I go.</p>
+          <p class="founder-bio founder-bio-callout">I'm looking for two people to build this with me — a <strong>technical co-founder</strong> and a <strong>go-to-market co-founder</strong>. If the problem resonates with you, or you've been thinking about focus, cognition, or wearables and want to build something real, I'd genuinely love to hear from you.</p>
+          <div class="founder-links">
+            <a href="mailto:lucaszhang@focuskit.org?subject=Building%20FocusKit%20together" class="founder-cta">Reach out →</a>
+            <a href="https://www.linkedin.com/in/lucaszhang0612" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://twitter.com/LucasZhang126" target="_blank" rel="noopener">Twitter</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       WAITLIST CTA + COUNTDOWN
+       ═══════════════════════════════════════════════════════ -->
+  <section class="cta-section" id="waitlist">
+    <div class="container">
+
+      <div class="countdown fade-up">
+        <div class="countdown-label">Launching in</div>
+        <div class="countdown-display">
+          <div class="cd-block"><div class="cd-num" id="cd-days">10</div><div class="cd-unit">days</div></div>
+          <div class="cd-block"><div class="cd-num" id="cd-hours">00</div><div class="cd-unit">hours</div></div>
+          <div class="cd-block"><div class="cd-num" id="cd-minutes">00</div><div class="cd-unit">min</div></div>
+          <div class="cd-block"><div class="cd-num" id="cd-seconds">00</div><div class="cd-unit">sec</div></div>
+        </div>
+      </div>
+
+      <h2 class="fade-up">Get there first.</h2>
+      <p class="fade-up">Join the waitlist. Be among the first 100 to try FocusKit on May 1.</p>
+
+      <form id="waitlistForm" class="waitlist-form fade-up">
+        <input type="email" placeholder="your@email.com" required id="emailInput" autocomplete="email">
+        <button type="submit">Join waitlist</button>
+      </form>
+
+      <p class="cta-note fade-up">We'll only email you about the launch. No spam.</p>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════════ -->
+  <footer>
+    <div class="footer-inner">
+      <a href="#" class="footer-logo">
+        <img src="assets/logo.png" alt="">
+        <span>FocusKit</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="mailto:lucaszhang@focuskit.org">Contact</a></li>
+        <li><a href="https://reddit.com/r/focuskit" target="_blank" rel="noopener">Reddit</a></li>
+        <li><a href="https://youtube.com/@focuskit" target="_blank" rel="noopener">YouTube</a></li>
+      </ul>
+      <div class="footer-meta">© 2026 FocusKit · UIUC · Team 114</div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRIPTS
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    /* ── Scroll-triggered fade-in ── */
+    const fadeObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          fadeObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(el => fadeObserver.observe(el));
+
+    /* ── Nav background on scroll ── */
+    const nav = document.getElementById('topNav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 30);
+    });
+
+    /* ── Hardware hotspot interaction ── */
+    const hotspots = document.querySelectorAll('.hotspot');
+    let activeCallout = null;
+
+    hotspots.forEach(spot => {
+      spot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const callout = spot.querySelector('.hotspot-callout');
+        if (activeCallout && activeCallout !== callout) {
+          activeCallout.classList.remove('active');
+        }
+        callout.classList.toggle('active');
+        activeCallout = callout.classList.contains('active') ? callout : null;
+      });
+
+      // Desktop hover
+      spot.addEventListener('mouseenter', () => {
+        const callout = spot.querySelector('.hotspot-callout');
+        if (window.matchMedia('(hover: hover)').matches) {
+          if (activeCallout && activeCallout !== callout) {
+            activeCallout.classList.remove('active');
+          }
+          callout.classList.add('active');
+          activeCallout = callout;
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.hotspot') && activeCallout) {
+        activeCallout.classList.remove('active');
+        activeCallout = null;
+      }
+    });
+
+    /* ── May 1, 2026 launch countdown ── */
+    const launchDate = new Date('2026-05-01T00:00:00').getTime();
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const diff = launchDate - now;
+
+      if (diff <= 0) {
+        document.getElementById('cd-days').textContent = '0';
+        document.getElementById('cd-hours').textContent = '00';
+        document.getElementById('cd-minutes').textContent = '00';
+        document.getElementById('cd-seconds').textContent = '00';
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      document.getElementById('cd-days').textContent = days;
+      document.getElementById('cd-hours').textContent = hours.toString().padStart(2, '0');
+      document.getElementById('cd-minutes').textContent = minutes.toString().padStart(2, '0');
+      document.getElementById('cd-seconds').textContent = seconds.toString().padStart(2, '0');
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    /* ── Waitlist form submission via Supabase ── */
+    const SUPABASE_URL = 'https://qohefyhuzpgduhdeehyf.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvaGVmeWh1enBnZHVoZGVlaHlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MjMyMDgsImV4cCI6MjA5MjM5OTIwOH0.iBXQzSQ7RcctnvN61049eehKOFeAyweMrw0_aidjewc';
+
+    let supabaseClient = null;
+    if (typeof window.supabase !== 'undefined') {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      console.error('Supabase SDK failed to load from CDN. Check network / ad-blocker.');
+    }
+
+    document.getElementById('waitlistForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById('emailInput');
+      const email = emailInput.value.trim().toLowerCase();
+      const btn = this.querySelector('button');
+      const originalText = btn.textContent;
+
+      if (!supabaseClient) {
+        btn.textContent = 'Try again';
+        btn.style.background = '#FFEBEE';
+        btn.style.color = '#C62828';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 3500);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      const { error } = await supabaseClient
+        .from('waitlist')
+        .insert({
+          email: email,
+          user_agent: navigator.userAgent.substring(0, 200),
+          source: 'website'
+        });
+
+      btn.disabled = false;
+
+      if (error) {
+        if (error.code === '23505') {
+          btn.textContent = '✓ Already on it';
+          btn.style.background = '#E8F5E9';
+          btn.style.color = '#1B4F1C';
+          emailInput.value = '';
+        } else {
+          console.error('Waitlist error:', error);
+          btn.textContent = 'Try again';
+          btn.style.background = '#FFEBEE';
+          btn.style.color = '#C62828';
+        }
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 3500);
+        return;
+      }
+
+      btn.textContent = '✓ Added';
+      btn.style.background = '#E8F5E9';
+      btn.style.color = '#1B4F1C';
+      emailInput.value = '';
+      emailInput.disabled = true;
+
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '';
+        btn.style.color = '';
+        emailInput.disabled = false;
+      }, 3500);
+    });
+
+    /* ── Hide placeholder SVG when real device image loads ── */
+    const realDeviceImg = document.querySelector('.device-real-image');
+    if (realDeviceImg) {
+      realDeviceImg.addEventListener('load', () => {
+        const svg = document.querySelector('.device-svg');
+        if (svg && realDeviceImg.naturalWidth > 0) svg.style.display = 'none';
+      });
+    }
+  </script>
+
+</body>
+</html>
