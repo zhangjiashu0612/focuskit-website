@@ -1,5 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FocusKit</title>
+<meta name="description" content="FocusKit is a pair of glasses that notices when you've stopped, and taps you back. Once. Quietly.">
+<meta name="theme-color" content="#F2EDE4">
+<meta name="color-scheme" content="light">
+<meta property="og:type" content="website">
+<meta property="og:title" content="FocusKit">
+<meta property="og:description" content="Sometimes you just need a little push.">
+<meta property="og:url" content="https://www.focuskit.org/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F2EDE4'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' text-anchor='middle' fill='%231C1B19'%3EF%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400;1,6..96,500&family=DM+Sans:wght@400;500&display=swap">
 <style>
   /* Layout: one quiet column on rice paper. The frame carries the page; words stay few. Motion is restrained: the frame sways, sections fade up once. */
@@ -13,11 +25,9 @@
     --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
     --ui: "DM Sans", "PingFang SC", system-ui, sans-serif;
     --measure: 34rem;
+    color-scheme: light;   /* one look, deliberately: the black acetate frame needs the cream ground in every OS theme */
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --paper: #1C1B19; --ink: #F2EDE4; --mid: #A89F94; --light: #6B6560; --panel: rgba(28, 27, 25, 0.86); color-scheme: dark; }
-  }
-  :root[data-theme="dark"] { --paper: #1C1B19; --ink: #F2EDE4; --mid: #A89F94; --light: #6B6560; --panel: rgba(28, 27, 25, 0.86); color-scheme: dark; }
+  [hidden] { display: none !important; }
 
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--ui); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
@@ -118,8 +128,8 @@
 
   @media (prefers-reduced-motion: reduce) { .btn, .drop, .part p, .part h3 i { transition: none; } .reveal.in { animation: none; } }
 </style>
-
-
+</head>
+<body>
 <nav>
   <div class="wrap">
     <a class="wordmark" href="#top">FocusKit</a>
@@ -258,8 +268,6 @@
 (function () {
   const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark' ||
-    (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
   const ease = k => 1 - Math.pow(1 - k, 3);
 
   // ---------- sections fade up once as they arrive; everything is already visible at rest ----------
@@ -279,7 +287,7 @@
     box(10, 2.2, [0, 5, 1], [0, 0, 0], 7.0);      // long top softbox: the strip highlight along the temples
     box(3.5, 5, [-6, 2.5, 4], [0, 0, 0], 3.2);    // key, front-left
     box(1.2, 6, [6, 1.5, -3], [0, 0, 0], 4.5);    // rim strip, back-right
-    box(14, 14, [0, -4, 0], [0, 0, 0], 0.55);     // floor bounce
+    box(14, 14, [0, -4, 0], [0, 0, 0], 0.12);     // floor bounce, kept low so the black stays black
     const env = pm.fromScene(s, 0.03).texture; pm.dispose(); return env;
   }
   function materialize(root, env) {
@@ -288,7 +296,7 @@
       const n = o.name; o.castShadow = true; o.receiveShadow = false;
       if (/^(ElectrodePlate|ReferencePlate)/.test(n)) o.material = new THREE.MeshStandardMaterial({ color: 0xd9d2c7, metalness: 0.75, roughness: 0.28, envMap: env, envMapIntensity: 1.1 });
       else if (/^(Hinge|NosePad|PadArm)/.test(n)) o.material = new THREE.MeshStandardMaterial({ color: 0xcfc7bb, metalness: 0.7, roughness: 0.3, envMap: env, envMapIntensity: 1.0 });
-      else o.material = new THREE.MeshPhysicalMaterial({ color: 0x0f0e0c, metalness: 0.0, roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.35, envMap: env, envMapIntensity: 0.9, side: THREE.FrontSide });
+      else o.material = new THREE.MeshPhysicalMaterial({ color: 0x0b0a09, metalness: 0.0, roughness: 0.62, clearcoat: 0.55, clearcoatRoughness: 0.16, envMap: env, envMapIntensity: 0.3, side: THREE.FrontSide });   // black acetate: dark body, one crisp lacquer highlight
     });
   }
   function makeViewer(container, model, env, opts) {
@@ -308,11 +316,8 @@
     const box = new THREE.Box3().setFromObject(model); const center = box.getCenter(new THREE.Vector3()); const L = box.getSize(new THREE.Vector3()).length();
     const sc = key.shadow.camera; sc.left = sc.bottom = -L * 0.9; sc.right = sc.top = L * 0.9; sc.near = 0.01; sc.far = 3; key.target.position.copy(center); scene.add(key.target);
     // the surface the frame rests on: only its shadow is drawn
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(L * 6, L * 6), new THREE.ShadowMaterial({ opacity: isDark() ? 0.45 : 0.26 }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(L * 6, L * 6), new THREE.ShadowMaterial({ opacity: 0.26 }));
     ground.rotation.x = -Math.PI / 2; ground.position.set(center.x, box.min.y - 0.0002, center.z); ground.receiveShadow = true; scene.add(ground);
-    const applyTheme = () => { ground.material.opacity = isDark() ? 0.45 : 0.26; };
-    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
-    new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     const controls = opts.orbit ? new THREE.OrbitControls(camera, renderer.domElement) : null;
     if (controls) { controls.enableDamping = true; controls.dampingFactor = 0.09; controls.enablePan = false; controls.minDistance = L * 0.28; controls.maxDistance = L * 2.6; controls.maxPolarAngle = Math.PI * 0.62; controls.target.copy(center); }
     function resize() { const w = container.clientWidth, h = container.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -324,23 +329,48 @@
 
   new THREE.GLTFLoader().parse(buf.buffer, '', (gltf) => {
     const base = gltf.scene;
-    const probe = new THREE.WebGLRenderer({ antialias: false }); const env = studioEnvironment(probe); probe.dispose();
-    const heroModel = base.clone(true); materialize(heroModel, env); materialize(base, env);
+    const heroModel = base.clone(true);
 
     // hero: a fixed, elevated three-quarter, with the slowest sway. Never a full orbit, never dead-on.
-    const hero = makeViewer(document.getElementById('heroStage'), heroModel, env, { orbit: false, fov: 24 });
-    const hc = hero.center, hL = hero.L; const hAz = -0.62, hDist = 1.55 * hL, hEl = 0.36;
-    const heroLook = new THREE.Vector3(hc.x, hc.y - 0.04 * hL, hc.z);
-    function heroPose(t) {
-      const az = hAz + (reduce.matches ? 0 : Math.sin(t / 7000) * 0.12), el = hEl + (reduce.matches ? 0 : Math.sin(t / 9000 + 1) * 0.03);
-      hero.camera.position.set(hc.x + Math.sin(az) * Math.cos(el) * hDist, hc.y + Math.sin(el) * hDist, hc.z + Math.cos(az) * Math.cos(el) * hDist);
-      hero.camera.lookAt(heroLook);
+    const hero = makeViewer(document.getElementById('heroStage'), heroModel, null, { orbit: false, fov: 24 });
+    materialize(heroModel, studioEnvironment(hero.renderer));
+    const hc = hero.center, hL = hero.L; const hAz = -0.62, hEl = 0.36, SWAY = 0.12;
+    let hDist = 1.55 * hL; const heroLook = hc.clone();
+    // the real outline of the frame, not its bounding box, so the fit is tight
+    const outline = []; heroModel.updateMatrixWorld(true);
+    heroModel.traverse(o => { if (!o.isMesh) return; const a = o.geometry.attributes.position; for (let i = 0; i < a.count; i += 3) outline.push(new THREE.Vector3().fromBufferAttribute(a, i).applyMatrix4(o.matrixWorld)); });
+    const tmpV = new THREE.Vector3();
+    function place(az, el) {
+      hero.camera.position.set(heroLook.x + Math.sin(az) * Math.cos(el) * hDist, heroLook.y + Math.sin(el) * hDist, heroLook.z + Math.cos(az) * Math.cos(el) * hDist);
+      hero.camera.lookAt(heroLook); hero.camera.updateMatrixWorld();
     }
-    heroPose(0);
+    function fitHero() {
+      // frame the whole pair through its full sway, with a margin, at whatever shape the stage is
+      heroLook.copy(hc); hDist = 1.55 * hL;
+      for (let it = 0; it < 8; it++) {
+        let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+        for (const az of [hAz - SWAY, hAz, hAz + SWAY]) {
+          place(az, hEl);
+          for (const v of outline) { tmpV.copy(v).project(hero.camera); if (tmpV.x < minX) minX = tmpV.x; if (tmpV.x > maxX) maxX = tmpV.x; if (tmpV.y < minY) minY = tmpV.y; if (tmpV.y > maxY) maxY = tmpV.y; }
+        }
+        place(hAz, hEl);
+        const halfH = hDist * Math.tan(THREE.MathUtils.degToRad(hero.camera.fov / 2)), halfW = halfH * hero.camera.aspect;
+        const right = new THREE.Vector3().setFromMatrixColumn(hero.camera.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(hero.camera.matrixWorld, 1);
+        heroLook.addScaledVector(right, (minX + maxX) / 2 * halfW).addScaledVector(up, (minY + maxY) / 2 * halfH);
+        hDist *= Math.max((maxX - minX) / 2, (maxY - minY) / 2) / 0.84;
+      }
+    }
+    function heroPose(t) {
+      const az = hAz + (reduce.matches ? 0 : Math.sin(t / 7000) * SWAY), el = hEl + (reduce.matches ? 0 : Math.sin(t / 9000 + 1) * 0.03);
+      place(az, el);
+    }
+    fitHero(); heroPose(0);
+    new ResizeObserver(() => fitHero()).observe(document.getElementById('heroStage'));
 
     // the frame: orbit + drops
     const frameEl = document.getElementById('frameStage');
-    const frame = makeViewer(frameEl, base, env, { orbit: true, fov: 26 });
+    const frame = makeViewer(frameEl, base, null, { orbit: true, fov: 26 });
+    materialize(base, studioEnvironment(frame.renderer));
     const fc = frame.center, fL = frame.L;
     const home = { P: new THREE.Vector3(fc.x + 0.95 * fL, fc.y + 0.55 * fL, fc.z + 1.05 * fL), T: fc.clone() };
     frame.camera.position.copy(home.P); frame.controls.target.copy(home.T); frame.controls.update();
@@ -479,12 +509,28 @@
     cv.addEventListener('dblclick', () => { paused = false; });
   })();
 
-  // ---------- waitlist (page UI here; the deployed site posts this to Supabase) ----------
+  // ---------- waitlist ----------
+  // WAITLIST_MODE is set at build time: "mail" opens the visitor's mail app (no backend yet); "supabase" stores the row.
+  const WAITLIST_MODE = 'mail';
+  const SUPABASE_URL = '', SUPABASE_ANON_KEY = '';
+  const CONTACT = 'lucaszhang@focuskit.org';
   const wl = document.getElementById('wl'), wlMsg = document.getElementById('wlMsg'), email = document.getElementById('email');
-  wl.addEventListener('submit', (e) => {
+  wl.addEventListener('submit', async (e) => {
     e.preventDefault(); const v = email.value.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { wlMsg.textContent = 'That doesn\'t look like an email yet.'; email.focus(); return; }
-    wlMsg.textContent = 'Noted. You\'re on the list.'; email.value = '';
+    if (WAITLIST_MODE === 'supabase') {
+      wlMsg.textContent = 'Adding you...';
+      try {
+        const r = await fetch(SUPABASE_URL + '/rest/v1/waitlist', { method: 'POST', headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ email: v, source: 'focuskit.org' }) });
+        if (r.ok || r.status === 409) { wlMsg.textContent = 'You\'re on the list.'; email.value = ''; }
+        else throw new Error(r.status);
+      } catch (err) { wlMsg.textContent = 'That didn\'t go through. Write to ' + CONTACT + ' and I\'ll add you.'; }
+      return;
+    }
+    location.href = 'mailto:' + CONTACT + '?subject=' + encodeURIComponent('FocusKit waitlist') + '&body=' + encodeURIComponent('Please add ' + v + ' to the FocusKit waitlist.');
+    wlMsg.textContent = 'Your mail app should open with a note to me. Send it and you\'re on the list. Or write to ' + CONTACT + '.';
   });
 })();
 </script>
+</body>
+</html>
