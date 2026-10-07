@@ -11,13 +11,13 @@
 <meta property="og:title" content="FocusKit">
 <meta property="og:description" content="Sometimes you just need a little push.">
 <meta property="og:url" content="https://www.focuskit.org/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F2EDE4'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' text-anchor='middle' fill='%231C1B19'%3EF%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F2EDE4'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' text-anchor='middle' fill='%232E2C29'%3EF%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400;1,6..96,500&family=DM+Sans:wght@400;500&display=swap">
 <style>
   /* Layout: one quiet column on rice paper. The frame carries the page; words stay few. Motion is restrained: the frame sways, sections fade up once. */
   :root {
     --paper: #F2EDE4;   /* rice paper */
-    --ink: #1C1B19;     /* warm near-black */
+    --ink: #2E2C29;     /* deep charcoal: the text family of the charcoal frame, 11.9:1 on the paper */
     --mid: #6B6560;     /* diluted ink */
     --light: #A89F94;   /* thin wash */
     --seal: #B5362A;    /* vermilion: CTA, hotspot drops, the push. Nowhere else. */
@@ -296,7 +296,7 @@
       const n = o.name; o.castShadow = true; o.receiveShadow = false;
       if (/^(ElectrodePlate|ReferencePlate)/.test(n)) o.material = new THREE.MeshStandardMaterial({ color: 0xd9d2c7, metalness: 0.75, roughness: 0.28, envMap: env, envMapIntensity: 1.1 });
       else if (/^(Hinge|NosePad|PadArm)/.test(n)) o.material = new THREE.MeshStandardMaterial({ color: 0xcfc7bb, metalness: 0.7, roughness: 0.3, envMap: env, envMapIntensity: 1.0 });
-      else o.material = new THREE.MeshPhysicalMaterial({ color: 0x0b0a09, metalness: 0.0, roughness: 0.62, clearcoat: 0.55, clearcoatRoughness: 0.16, envMap: env, envMapIntensity: 0.3, side: THREE.FrontSide });   // black acetate: dark body, one crisp lacquer highlight
+      else { o.material = new THREE.MeshPhysicalMaterial({ metalness: 0.0, roughness: 0.62, clearcoat: 0.55, clearcoatRoughness: 0.16, envMap: env, envMapIntensity: 0.3, side: THREE.FrontSide }); o.material.color.setHex(0x625e58).convertSRGBToLinear(); }   // charcoal acetate, chosen Oct 7 from the colour comparison
     });
   }
   function makeViewer(container, model, env, opts) {
